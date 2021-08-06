@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "utls.h"
+#include "winograde_c4.h"
 
 /**
  * F(2x2, 3x3)
@@ -12,8 +13,8 @@
  * */
 
 void GgGT(float* winograde_weight, float* kernel) {
-  float G[4][3] = {{1, 0, 0}, {0.5, 0.5, 0.5}, {0.5, -0.5, 0.5}, {0, 0, 1}};
-  float GT[3][4] = {{1, 0.5, 0.5, 0}, {0, 0.5, -0.5, 0}, {0, 0.5, 0.5, 1}};
+  float G[4][3]   = {{1, 0, 0}, {0.5, 0.5, 0.5}, {0.5, -0.5, 0.5}, {0, 0, 1}};
+  float GT[3][4]  = {{1, 0.5, 0.5, 0}, {0, 0.5, -0.5, 0}, {0, 0.5, 0.5, 1}};
   float Gxg[4][3] = {0.0f};
   for (int i = 0; i < 4; ++i) {
     for (int j = 0; j < 3; ++j) {
@@ -43,7 +44,9 @@ void GgGT(float* winograde_weight, float* kernel) {
 
 void BTdB(float* wino_input, float* input, int start, int IW) {
   int BT[4][4] = {{1, 0, -1, 0}, {0, 1, 1, 0}, {0, -1, 1, 0}, {0, 1, 0, -1}};
+
   int B[4][4] = {{1, 0, 0, 0}, {0, 1, -1, 1}, {-1, 1, 1, 0}, {0, 0, 0, -1}};
+
   float BT_B[4][4] = {0.0f};
   for (int i = 0; i < 4; ++i) {
     for (int j = 0; j < 4; ++j) {
@@ -75,7 +78,7 @@ void BTdB(float* wino_input, float* input, int start, int IW) {
  * */
 void output_convert(float* Y, float* U, float* V) {
   int AT[2][4] = {{1, 1, 1, 0}, {0, 1, -1, -1}};
-  int A[4][2] = {{1, 0}, {1, 1}, {1, -1}, {0, -1}};
+  int A[4][2]  = {{1, 0}, {1, 1}, {1, -1}, {0, -1}};
 
   float M[4][4] = {0.0f};
   for (int i = 0; i < 4; ++i) {
@@ -110,18 +113,18 @@ void output_convert(float* Y, float* U, float* V) {
  *
  * */
 
-void winograde(float* output, float* input, float* weight, float* bias) {
-  int N = 1;
-  int IC = 16;
-  int IH = 6;
-  int IW = 6;
-  int OC = 16;
-  int OH = 4;
-  int OW = 4;
-  int pad = 1;
-  int kernel_size = 3;
+void Winograde(float* output, float* input, float* weight, float* bias) {
+  int N             = 1;
+  int IC            = 16;
+  int IH            = 6;
+  int IW            = 6;
+  int OC            = 16;
+  int OH            = 4;
+  int OW            = 4;
+  int pad           = 1;
+  int kernel_size   = 3;
   auto* wino_weight = (float*)calloc(4 * 4, sizeof(float));
-  auto* wino_input = (float*)calloc(4 * 4, sizeof(float));
+  auto* wino_input  = (float*)calloc(4 * 4, sizeof(float));
   auto* wino_output = (float*)calloc(2 * 2, sizeof(float));
   for (int oc = 0; oc < OC; ++oc) {
     for (int oh = 0; oh < OH; oh += 2) {
@@ -144,9 +147,9 @@ void winograde(float* output, float* input, float* weight, float* bias) {
         }
         int output_index = oc * OH * OW + oh * OW + ow;
         std::cout << "output_index: " << output_index << std::endl;
-        output[output_index] = temp[0];
-        output[output_index + 1] = temp[1];
-        output[output_index + OW] = temp[2];
+        output[output_index]          = temp[0];
+        output[output_index + 1]      = temp[1];
+        output[output_index + OW]     = temp[2];
         output[output_index + OW + 1] = temp[3];
       };
     }
@@ -163,18 +166,18 @@ void winograde(float* output, float* input, float* weight, float* bias) {
 void padding(float* input, float* paded_input, int IC, int IH, int IW, int pad) {
   int PIH = IH + 2 * pad;
   int PIW = IW + 2 * pad;
-  int t = pad;
-  int l = pad;
-  int r = IW + pad;
-  int b = IH + pad;
+  int t   = pad;
+  int l   = pad;
+  int r   = IW + pad;
+  int b   = IH + pad;
   for (int ic = 0; ic < IC; ++ic) {
     for (int ih = 0; ih < PIH; ++ih) {
       for (int iw = 0; iw < PIW; ++iw) {
         if (ih < t || ih >= b || iw < l || iw >= r) {
           paded_input[ic * PIH * PIW + ih * PIW + iw] = 0;
         } else {
-          int input_index = ic * IH * IW + (ih - 1) * IW + iw - 1;
-          int pad_input_index = ic * PIH * PIW + ih * PIW + iw;
+          int input_index              = ic * IH * IW + (ih - 1) * IW + iw - 1;
+          int pad_input_index          = ic * PIH * PIW + ih * PIW + iw;
           paded_input[pad_input_index] = input[input_index];
         }
       }
@@ -192,32 +195,30 @@ int main() {
    * stride:    {1, 1}
    * group :    {1}
    * */
-  const int input_size = 4;
-  const int kernel_size = 3;
-  int N = 1;
-  int IC = 16;
-  int IH = 4;
-  int IW = 4;
-  int OC = 16;
-  int OH = 4;
-  int OW = 4;
+  int N   = 1;
+  int IC  = 16;
+  int IH  = 4;
+  int IW  = 4;
+  int OC  = 16;
+  int OH  = 4;
+  int OW  = 4;
   int pad = 1;
 
   // input: {n, IC, IH, IW} = {1, 16, 4, 4}
-  float* input = GetInput();
+  float* input    = GetInput();
   auto* pad_input = (float*)calloc(N * IC * (IH + 2 * pad) * (IW + 2 * pad), sizeof(float));
   // pad_input: {n, IC, IH, IW} = {1, 16, 6, 6}
   padding(input, pad_input, IC, IH, IW, pad);
-  //ConvertBetweenNHWCAndNCHW<float>(pad_input, nullptr, N, IC, (IH + 2), (IW + 2), NCHW2NHWC);
+  ConvertBetweenNHWCAndNCHW<float>(pad_input, nullptr, N, IC, (IH + 2 * pad), (IW + 2 * pad), NCHW2NHWC);
   free(input);
   // weight: {OC, IC, KH, KW} = {16, 16, 3, 3}
   float* weight = GetWeight();
   // bias: {OC} = {16}
   float* bias = GetBias();
   auto output = (float*)calloc(N * OC * OH * OW, sizeof(float));
-  winograde(output, pad_input, weight, bias);
-  // nhwc -> nchw
-  //ConvertBetweenNHWCAndNCHW<float>(output, nullptr, N, OC, OH, OW, NHWC2NCHW);
+  // Winograde(output, pad_input, weight, bias);
+  WinogradeNHWC(output, pad_input, weight, bias);
+  ConvertBetweenNHWCAndNCHW<float>(output, nullptr, N, OC, OH, OW, NHWC2NCHW);
   WriteOutput(output, N * OC * OH * OW);
   free(pad_input);
   free(output);
